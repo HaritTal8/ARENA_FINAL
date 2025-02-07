@@ -1,0 +1,174 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  .app {
+    min-height: 100vh;
+    background-color: #111827;
+    color: #fff;
+    padding: 2rem;
+  }
+  
+  .container {
+    min-height: 100vh;
+    padding: 2rem;
+  }
+  
+  .header {
+    margin-bottom: 2rem;
+  }
+  
+  .header-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+  }
+  
+  .status-container {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background-color: #1F2937;
+    border-radius: 0.5rem;
+  }
+  
+  .status-icon {
+    padding: 0.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .status-icon-active {
+    background-color: #10B981;
+  }
+  
+  .status-icon-inactive {
+    background-color: #EF4444;
+  }
+  
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+  
+  .card {
+    background-color: #1F2937;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+  }
+  
+  .card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  
+  .device-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+  }
+  
+  .device-item {
+    background-color: #374151;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .device-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .device-name {
+    font-weight: 600;
+  }
+  
+  .device-seat {
+    font-size: 0.875rem;
+    color: #9CA3AF;
+  }
+  
+  .signal-value {
+    text-align: right;
+    font-size: 0.875rem;
+  }
+  
+  .signal-good {
+    color: #34D399;
+  }
+  
+  .signal-moderate {
+    color: #FBBF24;
+  }
+  
+  .arena-grid {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 0.25rem;
+  }
+  
+  .grid-cell {
+    position: relative;
+    aspect-ratio: 1;
+    border: 1px solid #374151;
+    border-radius: 0.25rem;
+  }
+  
+  .seat-label {
+    position: absolute;
+    top: 0.25rem;
+    left: 0.25rem;
+    font-size: 0.75rem;
+  }
+  
+  .device-count {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+  
+  .chart-container {
+    height: 400px;
+    width: 100%;
+  }
+  
+  .section-control {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .section-button {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  
+  @media (max-width: 1024px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
