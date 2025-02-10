@@ -1,113 +1,149 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Bluetooth, Radio, Wifi } from 'lucide-react';
 
-// Status Indicator Component
-const StatusIndicator = ({ icon, label, status }) => (
-  <div className="status-indicator">
-    <div className={`status-icon ${status ? 'status-icon-active' : 'status-icon-inactive'}`}>
-      {icon}
-    </div>
-    <span>{label}</span>
-  </div>
-);
-
-// Device List Component
-const DeviceList = ({ devices }) => (
-  <div className="card">
-    <h2 className="card-title">Device Locations</h2>
-    <div className="device-list">
-      {devices.map(device => (
-        <div key={device.id} className="device-item">
-          <div className="device-info">
-            <div className="device-name">{device.name}</div>
-            <div className="device-seat">Seat: {device.seat_id}</div>
-          </div>
-          <div>
-            {Object.entries(device.rssi_values).map(([sensor, value]) => (
-              <div key={sensor} className="signal-value">
-                {sensor}: <span className={value > -60 ? 'signal-good' : 'signal-moderate'}>
-                  {value.toFixed(1)} dBm
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-// Arena Grid Component
-const ArenaGrid = ({ devices, sectionColors }) => {
-  const devicesBySeat = devices.reduce((acc, device) => {
-    if (!acc[device.seat_id]) acc[device.seat_id] = [];
-    acc[device.seat_id].push(device);
-    return acc;
-  }, {});
-
+const DeviceList = ({ devices }) => {
   return (
-    <div className="card">
-      <h2 className="card-title">Arena Visualization</h2>
-      <div className="arena-grid">
-        {Array.from({ length: 88 }).map((_, idx) => {
-          const row = Math.floor(idx / 11);
-          const col = idx % 11;
-          const seatId = `${String.fromCharCode(65 + row)}${col + 1}`;
-          const devicesInSeat = devicesBySeat[seatId] || [];
-          
-          return (
-            <div
-              key={seatId}
-              className="grid-cell"
-              style={{
-                backgroundColor: sectionColors[seatId[0]] || '#1F2937',
-                opacity: devicesInSeat.length > 0 ? 1 : 0.3,
-              }}
-            >
-              <div className="seat-label">{seatId}</div>
-              {devicesInSeat.length > 0 && (
-                <div className="device-count">
-                  {devicesInSeat.length}
-                </div>
-              )}
+    <div className="w-full">
+      <h2 className="text-xl font-bold mb-4">Detected Devices</h2>
+      <div className="space-y-4">
+        {devices.map(device => (
+          <div key={device.id} className="space-y-2">
+            <div>
+              <h3 className="text-lg font-medium">{device.name}</h3>
+              <p className="text-sm text-gray-300">Seat: {device.predicted_seat}</p>
+              <p className="text-sm text-gray-300">ID: {device.id}</p>
+              <p className="text-sm text-gray-300">{device.device_type}</p>
             </div>
-          );
-        })}
+            <div className="grid grid-cols-2 gap-4">
+              {Object.entries(device.rssi_values).map(([sensor, value]) => (
+                <div key={sensor} className="flex justify-between">
+                  <span className="text-gray-400">{sensor}:</span>
+                  <span className="text-gray-200">{value.toFixed(1)} dBm</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
-// Signal Strength Chart Component
+const ArenaGrid = ({ devices, sectionColors }) => {
+  const rows = 8;
+  const cols = 11;
+  const devicesBySeat = {};
+  
+  devices.forEach(device => {
+    if (device.predicted_seat) {
+      if (!devicesBySeat[device.predicted_seat]) {
+        devicesBySeat[device.predicted_seat] = [];
+      }
+      devicesBySeat[device.predicted_seat].push(device);
+    }
+  });
+
+  const seats = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const seatId = `${String.fromCharCode(65 + row)}${col + 1}`;
+      seats.push({
+        id: seatId,
+        section: seatId[0],
+        devices: devicesBySeat[seatId] || []
+      });
+    }
+  }
+
+  return (
+    <div className="w-full">
+      <h2 className="text-xl font-bold mb-4">Arena Layout</h2>
+      <div className="grid grid-cols-2 gap-x-4">
+        {seats.map((seat) => (
+          <div
+            key={seat.id}
+            className="h-8 mb-2 rounded flex items-center px-3 text-sm font-medium"
+            style={{
+              backgroundColor: sectionColors[seat.section],
+              opacity: seat.devices.length ? 1 : 0.7,
+              width: 30,
+              height: 30,
+              color: 'black',
+              gridColumn: (Number(seat.id.slice(1))-1) % 11 + 1
+
+            }}
+          >
+            {seat.id}
+            {seat.devices.length > 0 && (
+              <span className="ml-2">({seat.devices.length})</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const SignalStrengthChart = ({ devices }) => {
   const chartData = devices.map(device => ({
-    name: device.name,
+    name: device.name || device.id,
     ...device.rssi_values
   }));
 
   return (
-    <div className="card">
-      <h2 className="card-title">Signal Strength Analysis</h2>
-      <div className="chart-container">
-        <ResponsiveContainer>
+    <div className="w-full">
+      <h2 className="text-xl font-bold mb-4">Signal Strength Analysis</h2>
+      <div className="h-[300px] bg-gray-800/30 rounded p-4">
+        <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="name" stroke="#fff" />
-            <YAxis stroke="#fff" domain={[-100, -20]} />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1F2937',
+            <CartesianGrid stroke="#2D3748" strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="name" 
+              stroke="#A0AEC0" 
+              tick={{ fill: '#A0AEC0' }}
+            />
+            <YAxis 
+              domain={[-100, -20]} 
+              stroke="#A0AEC0"
+              tick={{ fill: '#A0AEC0' }}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#1A202C',
                 border: 'none',
-                borderRadius: '8px',
-                color: '#fff'
+                borderRadius: '4px',
+                color: '#A0AEC0'
               }}
             />
-            <Legend />
-            <Line type="monotone" dataKey="NW" name="NW Sensor" stroke="#EF4444" strokeWidth={2} dot={{ fill: '#EF4444' }} />
-            <Line type="monotone" dataKey="NE" name="NE Sensor" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981' }} />
-            <Line type="monotone" dataKey="SW" name="SW Sensor" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6' }} />
-            <Line type="monotone" dataKey="SE" name="SE Sensor" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#F59E0B' }} />
+            <Line 
+              type="monotone" 
+              dataKey="NW" 
+              stroke="#EF4444" 
+              strokeWidth={2}
+              dot={{ fill: '#EF4444' }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="NE" 
+              stroke="#10B981" 
+              strokeWidth={2}
+              dot={{ fill: '#10B981' }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="SW" 
+              stroke="#3B82F6" 
+              strokeWidth={2}
+              dot={{ fill: '#3B82F6' }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="SE" 
+              stroke="#F59E0B" 
+              strokeWidth={2}
+              dot={{ fill: '#F59E0B' }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -115,25 +151,32 @@ const SignalStrengthChart = ({ devices }) => {
   );
 };
 
-// Section Control Component
 const SectionControl = ({ sectionColors, setSectionColors }) => {
-  const colors = ['#1F2937', '#EF4444', '#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1'];
-
   return (
-    <div className="card">
-      <h2 className="card-title">Section Control</h2>
-      <div className="section-control">
-        {Object.keys(sectionColors).map(section => (
+    <div className="w-full">
+      <h2 className="text-xl font-bold mb-4">Section Control</h2>
+      <div className="grid grid-cols-2 gap-2">
+        {Object.entries(sectionColors).map(([section, color]) => (
           <button
             key={section}
+            className="h-8 rounded flex items-center justify-center text-black font-medium"
+            style={{ backgroundColor: color }}
             onClick={() => {
-              const currentIndex = colors.indexOf(sectionColors[section]);
+              const colors = [
+                '#8B5CF6', // Purple
+                '#3B82F6', // Blue
+                '#10B981', // Green
+                '#F59E0B', // Orange
+                '#EC4899', // Pink
+                '#6366F1', // Indigo
+                '#14B8A6', // Teal
+                '#EF4444', // Red
+                '#EAB308', // Yellow
+                '#4B5563'  // Gray
+              ];
+              const currentIndex = colors.indexOf(color);
               const nextColor = colors[(currentIndex + 1) % colors.length];
               setSectionColors(prev => ({ ...prev, [section]: nextColor }));
-            }}
-            className="section-button"
-            style={{
-              backgroundColor: sectionColors[section],
             }}
           >
             Section {section}
@@ -148,16 +191,18 @@ const IntegratedArenaSystem = () => {
   const [devices, setDevices] = useState([]);
   const [wsConnected, setWsConnected] = useState(false);
   const [sectionColors, setSectionColors] = useState({
-    'A': '#1F2937', 'B': '#1F2937', 'C': '#1F2937', 'D': '#1F2937',
-    'E': '#1F2937', 'F': '#1F2937', 'G': '#1F2937', 'H': '#1F2937'
+    'A': '#8B5CF6', // Purple
+    'B': '#3B82F6', // Blue
+    'C': '#10B981', // Green
+    'D': '#F59E0B', // Orange
+    'E': '#8B5CF6', // Purple
+    'F': '#EC4899', // Pink
+    'G': '#6366F1', // Indigo
+    'H': '#14B8A6'  // Teal
   });
 
   const connectWebSocket = useCallback(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:8000/ws`;
-    console.log('Connecting to WebSocket:', wsUrl);
-    
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(`ws://${window.location.hostname}:8000/ws`);
 
     ws.onopen = () => {
       console.log('WebSocket Connected');
@@ -165,40 +210,16 @@ const IntegratedArenaSystem = () => {
     };
 
     ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('Received WebSocket data:', data);
-        
-        if (data.devices) {
-          const transformedDevices = data.devices.map(device => ({
-            id: device.id,
-            name: device.name || 'Unknown Device',
-            seat_id: device.location ? 
-              `${String.fromCharCode(65 + Math.floor(device.location[0]))}${Math.floor(device.location[1]) + 1}` : 
-              'Unknown',
-            rssi_values: {
-              NW: device.rssi_values?.NW || device.rssi_values?.scanner || -100,
-              NE: device.rssi_values?.NE || -100,
-              SW: device.rssi_values?.SW || -100,
-              SE: device.rssi_values?.SE || -100
-            }
-          }));
-          console.log('Transformed devices:', transformedDevices);
-          setDevices(transformedDevices);
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error, event.data);
+      const data = JSON.parse(event.data);
+      if (data.type === 'update' && data.devices) {
+        setDevices(data.devices);
       }
     };
 
-    ws.onclose = (event) => {
-      console.log('WebSocket Disconnected:', event.code, event.reason);
+    ws.onclose = () => {
+      console.log('WebSocket Disconnected');
       setWsConnected(false);
       setTimeout(connectWebSocket, 2000);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket Error:', error);
     };
 
     return () => {
@@ -210,39 +231,39 @@ const IntegratedArenaSystem = () => {
 
   useEffect(() => {
     const cleanup = connectWebSocket();
-    return () => {
-      if (cleanup) cleanup();
-    };
+    return cleanup;
   }, [connectWebSocket]);
 
   return (
-    <div className="container">
-      <header className="header">
-        <h1 className="header-title">Arena Interactive System</h1>
-        <div className="status-container">
-          <StatusIndicator 
-            icon={<Radio size={24} />} 
-            label="Pico Network" 
-            status={wsConnected} 
-          />
-          <StatusIndicator 
-            icon={<Bluetooth size={24} />} 
-            label="Bluetooth Scanner" 
-            status={devices.length > 0} 
-          />
-          <StatusIndicator 
-            icon={<Wifi size={24} />} 
-            label="Server Connection" 
-            status={wsConnected} 
-          />
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold mb-4">Arena Interactive System</h1>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div>
+            <Radio className="w-6 h-6 mb-1" />
+            <div>Pico Network</div>
+          </div>
+          <div>
+            <Bluetooth className="w-6 h-6 mb-1" />
+            <div>Bluetooth Scanner</div>
+          </div>
+          <div>
+            <Wifi className="w-6 h-6 mb-1" />
+            <div>Server Connection</div>
+          </div>
         </div>
       </header>
 
-      <div className="grid">
-        <DeviceList devices={devices} />
-        <ArenaGrid devices={devices} sectionColors={sectionColors} />
-        <SignalStrengthChart devices={devices} />
-        <SectionControl sectionColors={sectionColors} setSectionColors={setSectionColors} />
+      <div className="grid grid-cols-2 gap-8">
+        <div className="space-y-8">
+          <DeviceList devices={devices} />
+          <SignalStrengthChart devices={devices} />
+        </div>
+        
+        <div className="space-y-8">
+          <ArenaGrid devices={devices} sectionColors={sectionColors} />
+          <SectionControl sectionColors={sectionColors} setSectionColors={setSectionColors} />
+        </div>
       </div>
     </div>
   );
